@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gaste os Impostos do Brasil</title>
+<style>
+  :root{
+    --bg:#07111f;
+    --panel:#0e1b2e;
+    --panel2:#13243b;
+    --line:#243956;
+    --text:#f3f7fb;
+    --muted:#9fb0c5;
+    --green:#21c47b;
+    --red:#ff5d67;
+    --accent:#4ea1ff;
+    --yellow:#ffd166;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    background:radial-gradient(circle at top,#10213a 0,#07111f 48%,#050b13 100%);
+    color:var(--text);
+  }
+  .wrap{max-width:1400px;margin:0 auto;padding:20px}
+  header{
+    position:sticky;top:0;z-index:20;
+    background:rgba(7,17,31,.93);
+    backdrop-filter:blur(12px);
+    border-bottom:1px solid rgba(255,255,255,.08);
+    padding:16px 20px;
+  }
+  .header-inner{max-width:1400px;margin:auto}
+  h1{margin:0 0 5px;font-size:clamp(24px,4vw,42px)}
+  .subtitle{color:var(--muted);margin:0}
+  .stats{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:12px;
+    margin:18px 0;
+  }
+  .stat{
+    background:linear-gradient(180deg,rgba(19,36,59,.95),rgba(14,27,46,.95));
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:15px;
+    box-shadow:0 10px 30px rgba(0,0,0,.16);
+  }
+  .stat span{display:block;color:var(--muted);font-size:13px;margin-bottom:6px}
+  .stat strong{font-size:clamp(18px,3vw,28px)}
+  .controls{
+    display:grid;
+    grid-template-columns:1.5fr .8fr auto;
+    gap:10px;
+    margin-bottom:10px;
+  }
+  input,select,button{
+    font:inherit;
+  }
+  input,select{
+    width:100%;
+    background:#0d1a2b;
+    color:var(--text);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:12px 14px;
+    outline:none;
+  }
+  input:focus,select:focus{border-color:var(--accent)}
+  .reset{
+    border:1px solid #6b3340;
+    background:#25131a;
+    color:#ffb9c0;
+    padding:0 16px;
+    border-radius:12px;
+    cursor:pointer;
+    font-weight:700;
+  }
+  .categories{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin:0 0 18px;
+  }
+  .cat{
+    border:1px solid var(--line);
+    background:#0d1a2b;
+    color:#c8d5e5;
+    border-radius:999px;
+    padding:8px 12px;
+    cursor:pointer;
+  }
+  .cat.active{background:#15345c;border-color:#3979bd;color:#fff}
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(255px,1fr));
+    gap:14px;
+  }
+  .card{
+    background:linear-gradient(180deg,#102039,#0c1727);
+    border:1px solid var(--line);
+    border-radius:18px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    min-height:390px;
+    box-shadow:0 14px 35px rgba(0,0,0,.16);
+  }
+  .photo{
+    height:190px;
+    width:100%;
+    object-fit:cover;
+    display:block;
+    background:#17263b;
+  }
+  .body{padding:14px;display:flex;flex-direction:column;gap:8px;flex:1}
+  .category{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    color:#78b5ff;
+  }
+  .name{
+    margin:0;
+    font-size:18px;
+    line-height:1.2;
+  }
+  .price{font-weight:800;font-size:20px;color:#fff}
+  .owned{color:var(--muted);font-size:13px}
+  .actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    margin-top:auto;
+    padding-top:7px;
+  }
+  .buy,.sell{
+    border:0;
+    border-radius:12px;
+    padding:11px 10px;
+    cursor:pointer;
+    font-weight:800;
+  }
+  .buy{background:var(--green);color:#04140d}
+  .sell{background:#24354d;color:#e4edf7}
+  .buy:disabled,.sell:disabled{opacity:.4;cursor:not-allowed}
+  .empty{
+    grid-column:1/-1;
+    padding:35px;
+    text-align:center;
+    color:var(--muted);
+    border:1px dashed var(--line);
+    border-radius:16px;
+  }
+  .toast{
+    position:fixed;right:18px;bottom:18px;z-index:50;
+    background:#0d1b2c;border:1px solid var(--line);
+    border-radius:12px;padding:12px 15px;
+    box-shadow:0 14px 30px rgba(0,0,0,.3);
+    transform:translateY(20px);opacity:0;pointer-events:none;
+    transition:.2s;
+  }
+  .toast.show{transform:translateY(0);opacity:1}
+  footer{color:#8194aa;text-align:center;padding:28px 0 8px;font-size:12px}
+  @media(max-width:800px){
+    .stats{grid-template-columns:1fr}
+    .controls{grid-template-columns:1fr}
+    .reset{padding:12px}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <h1>💰 Gaste os Impostos do Brasil</h1>
+    <p class="subtitle">Você começa com R$ 3.107.080.150.450,70. Compre coisas absurdamente caras e veja quanto sobra.</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="stats">
+    <div class="stat"><span>Dinheiro restante</span><strong id="balance">R$ 0,00</strong></div>
+    <div class="stat"><span>Total gasto</span><strong id="spent">R$ 0,00</strong></div>
+    <div class="stat"><span>Itens comprados</span><strong id="count">0</strong></div>
+  </section>
+
+  <section class="controls">
+    <input id="search" type="search" placeholder="🔎 Procurar item...">
+    <select id="sort">
+      <option value="default">Ordenação padrão</option>
+      <option value="cheap">Mais baratos primeiro</option>
+      <option value="expensive">Mais caros primeiro</option>
+      <option value="name">Nome A-Z</option>
+    </select>
+    <button class="reset" id="reset">Resetar jogo</button>
+  </section>
+
+  <div class="categories" id="categories"></div>
+  <section class="grid" id="grid"></section>
+  <footer>Jogo recreativo. Os preços são valores fictícios para a brincadeira e as imagens são carregadas de fontes externas.</footer>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  const START = 3107080150450.70;
+
+  // Imagens: fotos de referência de Unsplash e escudos/imagens públicas.
+  const IMG = {
+    burger: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=900",
+    pizza: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=900",
+    restaurant: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=900",
+    iphone: "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd1?w=900",
+    laptop: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=900",
+    pc: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=900",
+    server: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=900",
+    airpods: "https://images.unsplash.com/photo-1606220945770-b5b6c2c55bf1?w=900",
+    headphones: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=900",
+    watch: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=900",
+    tablet: "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=900",
+    desktop: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=900",
+    vr: "https://images.unsplash.com/photo-1622979135225-d2ba269cf1ac?w=900",
+    car: "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=900",
+    bus: "https://www.busplaner.de/sites/default/files/public/styles/_bilder_uebersicht_mobile_900x600_/public/images-news-teaser/260225-a7409791-bd.jpg",
+    train: "https://runews24.ru/assets/components/phpthumbof/cache/19b14fe16235cd4c8aec33f16b2881c0.6a856ca6cd9ae14d34cf1b572b5935db.jpg",
+    porsche: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=900",
+    yacht: "https://images.unsplash.com/photo-1569263979104-865ab7cd8d13?w=900",
+    mansion: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=900",
+    building: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=900",
+    hotel: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=900",
+    island: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=900",
+    city: "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=900",
+    school: "https://images.unsplash.com/photo-1509062522246-3755977927d7?w=900",
+    hospital: "https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=900",
+    university: "https://images.unsplash.com/photo-1564981797816-1043664bf78d?w=900",
+    bridge: "https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=900",
+    road: "https://images.unsplash.com/photo-1500534623283-312aade485b7?w=900",
+    amusement: "https://images.unsplash.com/photo-1513889961551-628c1e5e2ee9?w=900",
+    submarine: "https://images.unsplash.com/photo-1544551763-77ef2d0cfc6c?w=900",
+    rocket: "https://images.unsplash.com/photo-1517976547714-720226b864c1?w=900",
+    football: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=900",
+    basketball: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=900",
+    f1: "https://images.unsplash.com/photo-1504215680853-026ed2a45def?w=900",
+    stadium: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=900",
+    city2: "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=900",
+    ring: "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=900"
+  };
+
+  const TEAM = {
+    gremio: "https://escoladogremiozn.com.br/wp-content/uploads/2024/03/gremio-logo-escudo-1.png",
+    inter: "https://file.qiumiwu.com/team/202511/17/78b47679.png",
+    flamengo: "https://api.psg.fr/images/sportsImage/v1.0/Team/102ykb145wz6dtveg65nistwm.png?width=640",
+    palmeiras: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Palmeiras_logo.svg/512px-Palmeiras_logo.svg.png",
+    corinthians: "https://i.imgur.com/NEUQMtu.png",
+    real: "https://m.media-amazon.com/images/S/pv-target-images/509ba2498c33efbd3a3140f857b751dc5f95e1fb84d43f4a3ebcf3ffff8b4dc4.jpg",
+    barca: "https://upload.wikimedia.org/wikinews/en/thumb/4/47/FC_Barcelona_%28crest%29.svg/3840px-FC_Barcelona_%28crest%29.svg.png",
+    city: "https://i0.wp.com/dreamleaguesoccer.com.br/wp-content/uploads/Logo-manchester-city.png?fit=512%2C512&ssl=1",
+    liverpool: "https://www.designfootball.com/images/joomgallery/originals/football_crests_8/9_20120117_1830803608.png",
+    f1: "https://images.unsplash.com/photo-1504215680853-026ed2a45def?w=900"
+  };
+
+  const items = [
+    {id:1,name:"Hambúrguer",price:30,cat:"Comida",img:IMG.burger},
+    {id:2,name:"Pizza gigante",price:120,cat:"Comida",img:IMG.pizza},
+    {id:3,name:"Restaurante completo",price:2500000,cat:"Comida",img:IMG.restaurant},
+
+    {id:4,name:"Celular top",price:8000,cat:"Tecnologia",img:IMG.iphone},
+    {id:5,name:"Notebook gamer",price:15000,cat:"Tecnologia",img:IMG.laptop},
+    {id:6,name:"PC gamer extremo",price:50000,cat:"Tecnologia",img:IMG.pc},
+    {id:7,name:"Data center",price:100000000,cat:"Tecnologia",img:IMG.server},
+
+    {id:8,name:"iPhone 18 Pro Max",price:18000,cat:"Apple",img:IMG.iphone},
+    {id:9,name:"MacBook Pro 16 M5 Max",price:35000,cat:"Apple",img:IMG.laptop},
+    {id:10,name:"AirPods Pro 3",price:2699,cat:"Apple",img:IMG.airpods},
+    {id:11,name:"AirPods Max",price:6500,cat:"Apple",img:IMG.headphones},
+    {id:12,name:"Apple Watch Ultra",price:9000,cat:"Apple",img:IMG.watch},
+    {id:13,name:"iPad Pro",price:14000,cat:"Apple",img:IMG.tablet},
+    {id:14,name:"Mac Studio M5 Ultra",price:50000,cat:"Apple",img:IMG.desktop},
+    {id:15,name:"Apple Studio Display",price:18000,cat:"Apple",img:IMG.desktop},
+    {id:16,name:"Mac mini",price:10000,cat:"Apple",img:IMG.desktop},
+    {id:17,name:"Apple Vision Pro",price:30000,cat:"Apple",img:IMG.vr},
+    {id:18,name:"Magic Keyboard",price:1800,cat:"Apple",img:IMG.laptop},
+    {id:19,name:"Magic Mouse",price:1200,cat:"Apple",img:IMG.desktop},
+
+    {id:20,name:"Carro popular",price:90000,cat:"Veículos",img:IMG.car},
+    {id:21,name:"Porsche 911 GT3",price:2500000,cat:"Veículos",img:IMG.porsche},
+    {id:22,name:"Superesportivo",price:3500000,cat:"Veículos",img:IMG.porsche},
+    {id:23,name:"Lamborghini",price:4000000,cat:"Veículos",img:IMG.porsche},
+    {id:24,name:"Tesla Cybertruck",price:1500000,cat:"Veículos",img:IMG.car},
+    {id:25,name:"Ônibus",price:800000,cat:"Veículos",img:IMG.bus},
+    {id:26,name:"Trem",price:100000000,cat:"Veículos",img:IMG.train},
+    {id:27,name:"Jato executivo",price:400000000,cat:"Veículos",img:"https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=900"},
+    {id:28,name:"Iate de luxo",price:900000000,cat:"Veículos",img:IMG.yacht},
+
+    {id:29,name:"Casa",price:300000,cat:"Imóveis",img:IMG.mansion},
+    {id:30,name:"Mansão",price:50000000,cat:"Imóveis",img:IMG.mansion},
+    {id:31,name:"Arranha-céu",price:1500000000,cat:"Imóveis",img:IMG.building},
+    {id:32,name:"Shopping center",price:1000000000,cat:"Imóveis",img:IMG.building},
+    {id:33,name:"Hotel 5 estrelas",price:500000000,cat:"Imóveis",img:IMG.hotel},
+    {id:34,name:"Ilha particular",price:2000000000,cat:"Imóveis",img:IMG.island},
+    {id:35,name:"Casa em Dubai",price:80000000,cat:"Imóveis",img:IMG.city},
+
+    {id:36,name:"Grêmio",price:1500000000,cat:"Esportes",img:TEAM.gremio},
+    {id:37,name:"Internacional",price:1200000000,cat:"Esportes",img:TEAM.inter},
+    {id:38,name:"Flamengo",price:3500000000,cat:"Esportes",img:TEAM.flamengo},
+    {id:39,name:"Palmeiras",price:3000000000,cat:"Esportes",img:TEAM.palmeiras},
+    {id:40,name:"Corinthians",price:2500000000,cat:"Esportes",img:TEAM.corinthians},
+    {id:41,name:"Real Madrid",price:9000000000,cat:"Esportes",img:TEAM.real},
+    {id:42,name:"Barcelona",price:8000000000,cat:"Esportes",img:TEAM.barca},
+    {id:43,name:"Manchester City",price:6500000000,cat:"Esportes",img:TEAM.city},
+    {id:44,name:"Liverpool",price:7000000000,cat:"Esportes",img:TEAM.liverpool},
+    {id:45,name:"Boston Celtics",price:6500000000,cat:"Esportes",img:IMG.basketball},
+    {id:46,name:"Chicago Bulls",price:7000000000,cat:"Esportes",img:IMG.basketball},
+    {id:47,name:"Los Angeles Lakers",price:7000000000,cat:"Esportes",img:IMG.basketball},
+    {id:48,name:"Golden State Warriors",price:9000000000,cat:"Esportes",img:IMG.basketball},
+    {id:49,name:"Dallas Cowboys",price:9000000000,cat:"Esportes",img:IMG.football},
+    {id:50,name:"Kansas City Chiefs",price:8000000000,cat:"Esportes",img:IMG.football},
+    {id:51,name:"New York Yankees",price:7500000000,cat:"Esportes",img:IMG.football},
+    {id:52,name:"Ferrari F1",price:3500000000,cat:"Esportes",img:IMG.f1},
+    {id:53,name:"Red Bull Racing",price:3000000000,cat:"Esportes",img:IMG.f1},
+    {id:54,name:"Estádio de futebol",price:1500000000,cat:"Esportes",img:IMG.stadium},
+
+    {id:55,name:"Escola",price:30000000,cat:"Governo",img:IMG.school},
+    {id:56,name:"Hospital",price:500000000,cat:"Governo",img:IMG.hospital},
+    {id:57,name:"Universidade",price:1000000000,cat:"Governo",img:IMG.university},
+    {id:58,name:"Ponte gigante",price:2000000000,cat:"Governo",img:IMG.bridge},
+    {id:59,name:"Rodovia completa",price:5000000000,cat:"Governo",img:IMG.road},
+
+    {id:60,name:"Relógio de luxo",price:500000,cat:"Luxo",img:IMG.watch},
+    {id:61,name:"Parque de diversões",price:1000000000,cat:"Luxo",img:IMG.amusement},
+    {id:62,name:"Submarino",price:5000000000,cat:"Luxo",img:IMG.submarine},
+    {id:63,name:"Foguete",price:500000000,cat:"Luxo",img:IMG.rocket},
+    {id:64,name:"Missão espacial",price:3000000000,cat:"Luxo",img:IMG.rocket},
+    {id:65,name:"Cidade futurista",price:250000000000,cat:"Luxo",img:IMG.city2},
+    {id:66,name:"Rolex",price:1000000,cat:"Luxo",img:IMG.ring}
+  ];
+
+  const state = {
+    balance: START,
+    qty: {},
+    search: "",
+    category: "Todos",
+    sort: "default"
+  };
+
+  function brl(v){
+    return new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL",minimumFractionDigits:2}).format(v);
+  }
+
+  function esc(str){
+    return String(str).replace(/[&<>"']/g, function(c){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]);
+    });
+  }
+
+  function getSpent(){
+    return START - state.balance;
+  }
+
+  function getCount(){
+    return Object.values(state.qty).reduce((a,b)=>a+b,0);
+  }
+
+  function filtered(){
+    let list = items.filter(function(item){
+      const matchText = item.name.toLowerCase().includes(state.search.toLowerCase());
+      const matchCat = state.category === "Todos" || item.cat === state.category;
+      return matchText && matchCat;
+    });
+    if(state.sort === "cheap") list.sort((a,b)=>a.price-b.price);
+    if(state.sort === "expensive") list.sort((a,b)=>b.price-a.price);
+    if(state.sort === "name") list.sort((a,b)=>a.name.localeCompare(b.name));
+    return list;
+  }
+
+  function renderCategories(){
+    const el = document.getElementById("categories");
+    const cats = ["Todos"].concat(Array.from(new Set(items.map(i=>i.cat))));
+    el.innerHTML = cats.map(function(cat){
+      return '<button class="cat '+(state.category===cat?'active':'')+'" data-cat="'+esc(cat)+'">'+esc(cat)+'</button>';
+    }).join("");
+    el.querySelectorAll(".cat").forEach(function(btn){
+      btn.addEventListener("click",function(){
+        state.category = btn.dataset.cat;
+        render();
+      });
+    });
+  }
+
+  function fallbackSvg(name){
+    const safe = String(name).replace(/[&<>]/g, "");
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="900" height="550" viewBox="0 0 900 550"><defs><linearGradient id="g" x1="0" x2="1"><stop stop-color="#13243b"/><stop offset="1" stop-color="#243d5d"/></linearGradient></defs><rect width="900" height="550" fill="url(#g)"/><circle cx="450" cy="215" r="92" fill="#31577f"/><path d="M365 320h170v20H365z" fill="#8ca7c5"/><circle cx="415" cy="205" r="16" fill="#d7e2ee"/><circle cx="485" cy="205" r="16" fill="#d7e2ee"/><text x="450" y="395" text-anchor="middle" font-family="Arial" font-size="30" font-weight="700" fill="#f3f7fb">'+safe+'</text><text x="450" y="438" text-anchor="middle" font-family="Arial" font-size="20" fill="#a9bdd4">imagem de referência</text></svg>';
+    return "data:image/svg+xml;charset=UTF-8,"+encodeURIComponent(svg);
+  }
+
+  function renderCards(){
+    const grid = document.getElementById("grid");
+    const list = filtered();
+    if(!list.length){
+      grid.innerHTML = '<div class="empty">Nenhum item encontrado.</div>';
+      return;
+    }
+    grid.innerHTML = list.map(function(item){
+      const q = state.qty[item.id] || 0;
+      const canBuy = state.balance >= item.price;
+      return `
+        <article class="card">
+          <img class="photo" referrerpolicy="no-referrer" src="${esc(item.img)}" alt="${esc(item.name)}" loading="lazy" onerror="this.onerror=null;this.src='${fallbackSvg(item.name)}';">
+          <div class="body">
+            <div class="category">${esc(item.cat)}</div>
+            <h2 class="name">${esc(item.name)}</h2>
+            <div class="price">${brl(item.price)}</div>
+            <div class="owned">Comprados: ${q}</div>
+            <div class="actions">
+              <button class="buy" data-action="buy" data-id="${item.id}" ${canBuy?"":"disabled"}>Comprar</button>
+              <button class="sell" data-action="sell" data-id="${item.id}" ${q>0?"":"disabled"}>Vender</button>
+            </div>
+          </div>
+        </article>`;
+    }).join("");
+
+    grid.querySelectorAll("button[data-action]").forEach(function(btn){
+      btn.addEventListener("click",function(){
+        const id = Number(btn.dataset.id);
+        const action = btn.dataset.action;
+        const item = items.find(i=>i.id===id);
+        if(!item) return;
+
+        if(action==="buy"){
+          if(state.balance < item.price){
+            toast("Você não tem dinheiro suficiente.");
+            return;
+          }
+          state.balance -= item.price;
+          state.qty[id] = (state.qty[id]||0) + 1;
+          toast("Comprou 1x " + item.name);
+        }else{
+          if((state.qty[id]||0) <= 0) return;
+          state.balance += item.price;
+          state.qty[id] -= 1;
+          toast("Vendeu 1x " + item.name);
+        }
+        render();
+      });
+    });
+  }
+
+  function renderStats(){
+    document.getElementById("balance").textContent = brl(state.balance);
+    document.getElementById("spent").textContent = brl(getSpent());
+    document.getElementById("count").textContent = getCount().toLocaleString("pt-BR");
+  }
+
+  function render(){
+    renderStats();
+    renderCategories();
+    renderCards();
+  }
+
+  let toastTimer;
+  function toast(msg){
+    const el = document.getElementById("toast");
+    el.textContent = msg;
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>el.classList.remove("show"),1800);
+  }
+
+  document.getElementById("search").addEventListener("input",function(e){
+    state.search = e.target.value;
+    renderCards();
+  });
+
+  document.getElementById("sort").addEventListener("change",function(e){
+    state.sort = e.target.value;
+    renderCards();
+  });
+
+  document.getElementById("reset").addEventListener("click",function(){
+    state.balance = START;
+    state.qty = {};
+    state.search = "";
+    state.category = "Todos";
+    state.sort = "default";
+    document.getElementById("search").value = "";
+    document.getElementById("sort").value = "default";
+    toast("Jogo resetado!");
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
